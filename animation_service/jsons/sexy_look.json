@@ -1,0 +1,16 @@
+{
+  "sequence": "sexy_look",
+  "description": "Mirada seductora y poses elegantes con actitud coqueta. Ideal para momentos románticos, flirtear sutilmente o cuando se quiere proyectar confianza y atractivo.",
+  "keyframes": [
+    { "vrma": "poses/standing_key_00.vrma", "duration": 0.4, "crossfade": 0.2 },
+    { "vrma": "poses/sexy_look_key_00.vrma", "duration": 1.0, "crossfade": 0.3 },
+    { "vrma": "poses/sexy_look_key_01.vrma", "duration": 1.8, "crossfade": 0.25 },
+    { "vrma": "poses/sexy_look_key_02.vrma", "duration": 2.0, "crossfade": 0.25 },
+    { "vrma": "poses/sexy_look_key_01.vrma", "duration": 1.2, "crossfade": 0.25 },
+    { "vrma": "poses/sexy_look_key_00.vrma", "duration": 0.8, "crossfade": 0.3 },
+    { "vrma": "poses/standing_key_00.vrma", "duration": 0.6, "crossfade": 0.2 }
+  ],
+  "breathing": true,
+  "delay": 0.5,
+  "temporary": true
+}

@@ -1,0 +1,19 @@
+{
+  "sequence": "idle",
+  "description": "Animación idle natural para momentos de espera, conversación casual o cuando no hay una acción específica. Respiración sutil y movimientos corporales relajados.",
+  "keyframes": [
+    { "vrma": "poses/standing_key_00.vrma", "duration": 2.0, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_01.vrma", "duration": 4.2, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_02.vrma", "duration": 3.5, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_03.vrma", "duration": 5.3, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_04.vrma", "duration": 2.4, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_05.vrma", "duration": 4.1, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_04.vrma", "duration": 6.2, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_03.vrma", "duration": 4.0, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_02.vrma", "duration": 3.3, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_01.vrma", "duration": 7.1, "crossfade": 1.25 },
+    { "vrma": "poses/standing_key_00.vrma", "duration": 5.0, "crossfade": 1.25 }
+  ],
+  "breathing": true,
+  "delay": 0.0
+}

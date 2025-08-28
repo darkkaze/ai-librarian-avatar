@@ -1,0 +1,18 @@
+{
+  "sequence": "hello",
+  "description": "Saludo amigable y energético con gestos de mano. Ideal para iniciar conversaciones, dar la bienvenida o mostrar entusiasmo al encontrarse con alguien.",
+  "keyframes": [
+    { "vrma": "poses/standing_key_00.vrma", "duration": 0.2, "crossfade": 0.1 },
+    { "vrma": "poses/hello_key_00.vrma", "duration": 0.8, "crossfade": 0.15 },
+    { "vrma": "poses/hello_key_01.vrma", "duration": 0.6, "crossfade": 0.2 },
+    { "vrma": "poses/hello_key_02.vrma", "duration": 0.7, "crossfade": 0.2 },
+    { "vrma": "poses/hello_key_03.vrma", "duration": 0.8, "crossfade": 0.2 },
+    { "vrma": "poses/hello_key_02.vrma", "duration": 0.5, "crossfade": 0.2 },
+    { "vrma": "poses/hello_key_01.vrma", "duration": 0.4, "crossfade": 0.15 },
+    { "vrma": "poses/hello_key_00.vrma", "duration": 0.3, "crossfade": 0.15 },
+    { "vrma": "poses/standing_key_00.vrma", "duration": 0.2, "crossfade": 0.1 }
+  ],
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": true
+}

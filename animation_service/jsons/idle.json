@@ -1,0 +1,8 @@
+{
+  "sequence": "idle",
+  "description": "Animación idle simple con un solo archivo VRMA en loop continuo",
+  "vrma_file": "poses/waiting-animation.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

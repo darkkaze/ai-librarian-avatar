@@ -1,0 +1,83 @@
+@import './base.css';
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevents scrollbars from appearing */
+}
+
+#app {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--pink-candy-background);
+}
+
+/* Pink Candy Light Theme - Custom Styles to complement Vuetify Material Design 3 */
+
+/* Custom utility classes not provided by Vuetify */
+.hero-section {
+  min-height: var(--hero-min-height);
+}
+
+/* Pink Candy specific gradient components */
+.pink-gradient-primary {
+  background: linear-gradient(135deg, var(--pink-candy-primary) 0%, var(--pink-candy-accent) 100%);
+}
+
+.pink-gradient-secondary {
+  background: linear-gradient(135deg, var(--pink-candy-secondary) 0%, var(--pink-candy-accent) 100%);
+}
+
+/* Custom text colors for hero over light background */
+.text-hero-primary {
+  color: #4A148C !important;
+}
+
+.text-hero-secondary {
+  color: rgba(74, 20, 140, 0.8) !important;
+}
+
+/* Timeline/stepper visual enhancements */
+.step-connector {
+  width: 2px;
+  background: rgb(var(--v-theme-outline));
+  opacity: 0.38;
+}
+
+/* Custom hover effects for Material Design 3 with pink candy theme */
+.pink-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pink-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(233, 30, 99, 0.15);
+}
+
+/* Responsive text utilities that work with Vuetify */
+@media (min-width: 768px) {
+  .text-md-h3 {
+    font-size: 3rem !important;
+    line-height: 3.125rem !important;
+  }
+  
+  .text-md-h5 {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+}
+
+/* Custom spacing for pink candy theme specific needs */
+.py-hero {
+  padding-top: 4rem !important;
+  padding-bottom: 4rem !important;
+}
+
+@media (min-width: 768px) {
+  .py-hero {
+    padding-top: 6rem !important;
+    padding-bottom: 6rem !important;
+  }
+}

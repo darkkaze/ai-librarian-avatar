@@ -1,0 +1,46 @@
+/* Pink Candy Light Theme - Base Styles for Vuetify Material Design 3 */
+
+/* Pink Candy Font Stack - optimized for readability */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+/* Custom CSS Variables inspired by Pink Candy Light theme */
+:root {
+  /* Custom spacing for specific needs */
+  --hero-min-height: 50vh;
+  
+  /* Pink Candy Typography - VS Code inspired */
+  --font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+  --mono-font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier', monospace;
+  
+  /* Pink Candy Light color palette */
+  --pink-candy-primary: #E91E63;
+  --pink-candy-accent: #FF4081;
+  --pink-candy-secondary: #9C27B0;
+  --pink-candy-background: #FDF2F8;
+  --pink-candy-surface: #FFFFFF;
+}
+
+/* Minimal base overrides - let Vuetify handle the rest */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom hero background with pink candy gradient */
+.hero-background {
+  background: linear-gradient(rgba(233, 30, 99, 0.3), rgba(156, 39, 176, 0.4)), 
+              linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+  background-size: cover;
+  background-position: center;
+  min-height: var(--hero-min-height);
+}
+
+/* Custom quote section gradient - Pink Candy colors */
+.quote-gradient {
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)), rgba(233, 30, 99, 0.8));
+}
