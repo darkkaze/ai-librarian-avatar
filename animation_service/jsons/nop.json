@@ -1,0 +1,8 @@
+{
+  "sequence": "nop",
+  "description": "Gesto de negación o desacuerdo, moviendo la cabeza para decir 'no'",
+  "vrma_file": "animations/nop.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

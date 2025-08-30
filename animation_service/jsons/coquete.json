@@ -1,0 +1,8 @@
+{
+  "sequence": "coquete",
+  "description": "Animación coqueta o juguetona, con gestos seductores y encantadores",
+  "vrma_file": "animations/coquete.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

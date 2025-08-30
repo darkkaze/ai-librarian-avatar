@@ -27,7 +27,7 @@ interface BreathingConfig {
 const DEFAULT_BREATHING: BreathingConfig = {
   duration: 4.5,
   chestExpansion: 0.04,
-  enabled: false  // HARDCODED DISABLED FOR TESTING
+  enabled: false  // Disabled for now - breathing commented out
 }
 
 export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, config: AvatarConfig) {
@@ -49,9 +49,11 @@ export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, confi
   let currentAction: THREE.AnimationAction | null = null
   const loadedAnimations = new Map<string, THREE.AnimationClip>()
   const loadedSequences = new Map<string, AnimationSequence>()
-  let isTransitioning = false
-  let currentSequenceTimeout: number | null = null
-  let isTemporaryAnimation = false
+  
+  // Clean idle system
+  let idleTimer: number | null = null
+  let currentAnimationState: 'idle' | 'specific' = 'idle'
+  const availableIdles = ['idle', 'idle2']
 
   // Expression management
   let expressionQueue: Expression[] = []
@@ -254,12 +256,116 @@ export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, confi
    * Load idle animation
    */
   const loadIdleAnimation = async (): Promise<void> => {
+    // Load both idle animations
     await loadAnimation('idle')
+    await loadAnimation('idle2')
 
-    // Wait a small delay to ensure everything is initialized
+    // Wait a small delay to ensure everything is initialized, then start clean idle system
     setTimeout(() => {
-      playAnimation('idle')
+      startIdleSystem()
     }, 100)
+  }
+
+  /**
+   * Start the idle system - clean and simple
+   */
+  const startIdleSystem = (): void => {
+    console.log('🔄 Starting clean idle system')
+    currentAnimationState = 'idle'
+    playNextIdle()
+  }
+
+  /**
+   * Play next random idle with natural timing
+   */
+  const playNextIdle = (): void => {
+    if (currentAnimationState !== 'idle') {
+      console.log('🚫 Not playing idle - specific animation is active')
+      return
+    }
+
+    // Clear any existing timer
+    if (idleTimer) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
+
+    // Select random idle
+    const randomIdle = availableIdles[Math.floor(Math.random() * availableIdles.length)]
+    console.log(`🎲 Playing idle: ${randomIdle}`)
+    
+    // Play the idle animation with natural duration-based transition
+    playIdleWithNaturalRotation(randomIdle)
+  }
+
+  /**
+   * Play idle with natural rotation after it finishes one cycle
+   */
+  const playIdleWithNaturalRotation = async (idleName: string): Promise<void> => {
+    try {
+      // Load animation if not loaded
+      if (!loadedSequences.has(idleName)) {
+        await loadAnimation(idleName)
+      }
+
+      const sequence = loadedSequences.get(idleName)
+      if (!sequence?.vrma_file) {
+        console.error(`❌ Idle animation ${idleName} not found`)
+        return
+      }
+
+      const keyframeName = extractKeyframeName(sequence.vrma_file)
+      const clip = loadedAnimations.get(keyframeName)
+      if (!clip || !mixer) {
+        console.error(`❌ Clip not found for ${keyframeName}`)
+        return
+      }
+
+      const newAction = mixer.clipAction(clip)
+      
+      // Configure for continuous loop to avoid T-pose
+      newAction.setLoop(THREE.LoopRepeat, Infinity)
+      newAction.clampWhenFinished = false
+
+      // Setup and play
+      newAction.reset()
+      newAction.setEffectiveWeight(1.0)
+      newAction.setEffectiveTimeScale(1.0)
+
+      // Crossfade from current action
+      if (currentAction && currentAction !== newAction) {
+        newAction.play()
+        currentAction.crossFadeTo(newAction, 1.5, false)
+      } else {
+        newAction.play()
+      }
+
+      currentAction = newAction
+      console.log(`✅ Playing idle naturally: ${idleName}`)
+
+      // Schedule next idle after one complete cycle
+      const animationDuration = clip.duration * 1000
+      console.log(`⏱️ ${idleName} will loop for ${clip.duration.toFixed(1)}s then crossfade to next`)
+      
+      idleTimer = setTimeout(() => {
+        if (currentAnimationState === 'idle') {
+          playNextIdle() // Switch to next random idle
+        }
+      }, animationDuration)
+
+    } catch (error) {
+      console.error(`❌ Error playing idle ${idleName}:`, error)
+    }
+  }
+
+  /**
+   * Stop idle system
+   */
+  const stopIdleSystem = (): void => {
+    if (idleTimer) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
   }
 
   /**
@@ -284,6 +390,17 @@ export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, confi
       const animationData: AnimationSequence = await response.json()
 
       console.log(`🔍 Animation data received for ${animationName}:`, JSON.stringify(animationData, null, 2))
+      
+      // 🔍 LOG ESPECIAL PARA IDLE
+      if (animationName === 'idle') {
+        console.group('🏠 IDLE Animation Deep Dive')
+        console.log('📋 Complete idle config:', animationData)
+        console.log('🎭 Has keyframes:', !!animationData.keyframes)
+        console.log('📁 Has single file:', !!animationData.vrma_file)
+        console.log('🔁 Is looping:', animationData.loop)
+        console.log('⚡ Is temporary:', animationData.temporary)
+        console.groupEnd()
+      }
 
       // Handle keyframes format (multiple VRMA files)
       if (animationData.keyframes) {
@@ -343,9 +460,51 @@ export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, confi
       const gltf = await loader.loadAsync(vrmaUrl)
 
       if (gltf.userData.vrmAnimations && gltf.userData.vrmAnimations.length > 0) {
-        const clip = createVRMAnimationClip(gltf.userData.vrmAnimations[0], vrm)
+        const vrmAnimation = gltf.userData.vrmAnimations[0]
+        
+        // 🔍 LOG DETALLADO DE LA ESTRUCTURA VRMA
+        console.group(`📊 VRMA Structure Analysis: ${name}`)
+        console.log('🎬 Raw VRMA Animation Object:', vrmAnimation)
+        
+        if (vrmAnimation.tracks) {
+          console.log(`🎭 Total tracks: ${vrmAnimation.tracks.length}`)
+          
+          vrmAnimation.tracks.forEach((track, index) => {
+            console.group(`📦 Track ${index}: ${track.name}`)
+            console.log('⏱️ Times:', track.times)
+            console.log('🎯 Values:', track.values) 
+            console.log('🔧 Type:', track.constructor.name)
+            console.log('📏 Duration:', track.times ? track.times[track.times.length - 1] : 'N/A')
+            console.groupEnd()
+          })
+        }
+        
+        if (vrmAnimation.duration) {
+          console.log(`⏱️ Total duration: ${vrmAnimation.duration}s`)
+        }
+        
+        console.groupEnd()
+        
+        const clip = createVRMAnimationClip(vrmAnimation, vrm)
 
         if (clip) {
+          // 🔍 LOG DETALLADO DEL CLIP GENERADO
+          console.group(`🎬 Generated AnimationClip: ${name}`)
+          console.log('🎭 Clip object:', clip)
+          console.log(`⏱️ Duration: ${clip.duration}s`)
+          console.log(`📦 Tracks: ${clip.tracks.length}`)
+          
+          clip.tracks.forEach((track, index) => {
+            console.group(`🎯 Clip Track ${index}`)
+            console.log('📛 Name:', track.name)
+            console.log('🎨 Type:', track.constructor.name)
+            console.log('⏰ Times length:', track.times?.length)
+            console.log('📊 Values length:', track.values?.length)
+            console.groupEnd()
+          })
+          
+          console.groupEnd()
+          
           loadedAnimations.set(name, clip)
           console.log(`✅ VRMA loaded: ${name}`)
         }
@@ -358,225 +517,126 @@ export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, confi
   }
 
   /**
-   * Play animation sequence
+   * Clean animation player - replaces the complex playAnimation
    */
-  const playAnimation = async (animationName: string, crossfadeDuration: number = 1.0): Promise<void> => {
-    console.log(`🎭 playAnimation called with: ${animationName}, crossfade: ${crossfadeDuration}`)
-    console.log(`🎭 mixer available: ${!!mixer}, isTransitioning: ${isTransitioning}`)
+  const playAnimationClean = async (animationName: string, isIdle: boolean = false, crossfadeDuration: number = 1.5): Promise<void> => {
+    console.log(`🎭 Playing ${isIdle ? 'idle' : 'specific'} animation: ${animationName}`)
 
     if (!mixer) {
-      console.log(`🎭 Early return - no mixer available`)
+      console.log('❌ No mixer available')
       return
     }
 
-    // Clear any existing sequence timeout
-    if (currentSequenceTimeout) {
-      clearTimeout(currentSequenceTimeout)
-      currentSequenceTimeout = null
-    }
-
-    // Reset transition state
-    isTransitioning = false
-
     try {
-      // Load animation sequence if not already loaded
+      // Load animation if not loaded
       if (!loadedSequences.has(animationName)) {
-        console.log(`🎭 Loading animation sequence: ${animationName}`)
+        console.log(`🔄 Loading animation: ${animationName}`)
         await loadAnimation(animationName)
-      } else {
-        console.log(`🎭 Animation sequence ${animationName} already loaded`)
       }
 
       const sequence = loadedSequences.get(animationName)
       if (!sequence) {
-        console.warn(`🎭 Animation sequence not available: ${animationName}`)
+        console.error(`❌ Animation ${animationName} not found`)
         return
       }
 
-      currentAnimation.value = animationName
-
-      // Check if this is a temporary animation
-      isTemporaryAnimation = sequence.temporary === true
-
-      if (isTemporaryAnimation) {
-        console.log(`🎭 Playing temporary animation: ${animationName}`)
-      } else {
-        console.log(`🎭 Playing persistent animation: ${animationName}`)
+      // Handle specific animations (from webhook)
+      if (!isIdle) {
+        currentAnimationState = 'specific'
+        stopIdleSystem() // Stop idle rotation
+        console.log(`🎯 Playing specific animation: ${animationName}`)
       }
 
-      // Handle keyframes format (multiple VRMA files)
-      if (sequence.keyframes && sequence.keyframes.length > 0) {
-        console.log(`🎭 Got animation sequence for: ${animationName} with ${sequence.keyframes.length} keyframes`)
-        await playKeyframeSequence(sequence.keyframes, 0, animationName)
-      }
-      // Handle single VRMA file format
-      else if (sequence.vrma_file) {
-        console.log(`🎭 Got single VRMA animation: ${animationName}`)
-        await playSingleVRMA(sequence.vrma_file, animationName)
-      }
-      else {
-        console.warn(`🎭 Animation sequence has no keyframes or vrma_file: ${animationName}`)
-      }
+      // Play the animation
+      await playAnimationSequence(sequence, animationName, isIdle, crossfadeDuration)
 
     } catch (error) {
-      console.error(`Failed to play animation ${animationName}:`, error)
+      console.error(`❌ Error playing animation ${animationName}:`, error)
     }
   }
 
   /**
-   * Play single VRMA file animation
+   * Play animation sequence with proper cleanup
    */
-  const playSingleVRMA = async (vrmaFile: string, animationName: string): Promise<void> => {
-    if (!mixer) {
-      console.log(`🎭 Early return - no mixer available for single VRMA`)
-      return
+  const playAnimationSequence = async (sequence: AnimationSequence, animationName: string, isIdle: boolean, crossfadeDuration: number): Promise<void> => {
+    // Handle single VRMA file format
+    if (sequence.vrma_file) {
+      await playSingleVRMA(sequence.vrma_file, animationName, isIdle, crossfadeDuration)
     }
+    // Handle keyframes format (if needed)
+    else if (sequence.keyframes && sequence.keyframes.length > 0) {
+      console.log(`🎭 Keyframe sequences not implemented in clean system yet`)
+    }
+    else {
+      console.error(`❌ Unknown animation format for ${animationName}`)
+    }
+  }
 
-    const keyframeName = extractKeyframeName(vrmaFile)
+  /**
+   * Play single VRMA file with proper state management
+   */
+  const playSingleVRMA = async (vrmaUrl: string, animationName: string, isIdle: boolean, crossfadeDuration: number): Promise<void> => {
+    if (!mixer) return
+
+    const keyframeName = extractKeyframeName(vrmaUrl)
     const clip = loadedAnimations.get(keyframeName)
-
     if (!clip) {
-      console.warn(`🎭 VRMA clip not available: ${keyframeName}`)
+      console.error(`❌ Clip not found for ${keyframeName} from ${vrmaUrl}`)
       return
-    }
-
-    // Clear any existing sequence timeout
-    if (currentSequenceTimeout) {
-      clearTimeout(currentSequenceTimeout)
-      currentSequenceTimeout = null
     }
 
     const newAction = mixer.clipAction(clip)
-
-    // Configure the animation for continuous loop
-    newAction.setLoop(THREE.LoopRepeat, Infinity)
-    newAction.clampWhenFinished = false
-
-    // Reset and setup the new action
-    newAction.reset()
-    newAction.setEffectiveWeight(1.0)
-    newAction.setEffectiveTimeScale(1.0)
-
-    // Crossfade from current action if exists
-    if (currentAction && currentAction !== newAction && !isTransitioning) {
-      isTransitioning = true
-
-      // Start the new action first
-      newAction.play()
-
-      // Then crossfade from current to new
-      const crossfadeDuration = 1.0 // 1 second crossfade for single VRMA
-      currentAction.crossFadeTo(newAction, crossfadeDuration, false)
-
-      setTimeout(() => {
-        isTransitioning = false
-      }, crossfadeDuration * 1000)
+    
+    // Configure animation based on type
+    if (isIdle) {
+      // Idle animations loop continuously
+      newAction.setLoop(THREE.LoopRepeat, Infinity)
+      newAction.clampWhenFinished = false
     } else {
-      // No transition needed, just play
-      newAction.play()
+      // Specific animations play once
+      newAction.setLoop(THREE.LoopOnce, 1)
+      newAction.clampWhenFinished = true
+      
+      // Set up return to idle when specific animation finishes
+      const duration = clip.duration * 1000
+      setTimeout(() => {
+        console.log(`🔄 Specific animation ${animationName} finished, returning to idle`)
+        currentAnimationState = 'idle'
+        startIdleSystem()
+      }, duration)
     }
 
-    currentAction = newAction
-    console.log(`🎭 ✅ Single VRMA playing: ${keyframeName} for animation: ${animationName}`)
-
-    // Handle temporary animations
-    if (isTemporaryAnimation && animationName !== 'idle') {
-      // For temporary animations, play once and return to idle
-      // Calculate animation duration (approximation based on clip duration)
-      const animationDuration = clip.duration * 1000 // Convert to milliseconds
-
-      currentSequenceTimeout = setTimeout(() => {
-        console.log(`🎭 Temporary single VRMA completed, returning to idle`)
-        isTemporaryAnimation = false
-        isTransitioning = false
-        playAnimation('idle')
-      }, animationDuration)
-    }
-  }
-
-  /**
-   * Play sequence of keyframes with timing and crossfades
-   */
-  const playKeyframeSequence = async (keyframes: AnimationKeyframe[], index: number, sequenceName?: string): Promise<void> => {
-    if (index >= keyframes.length || !mixer) {
-      console.log(`🎭 Keyframe sequence completed`)
-
-      // Check if this is a temporary animation
-      if (isTemporaryAnimation && sequenceName !== 'idle') {
-        console.log(`🎭 Temporary animation completed, returning to idle`)
-        isTemporaryAnimation = false
-        currentSequenceTimeout = setTimeout(() => {
-          isTransitioning = false
-          playAnimation('idle')
-        }, 500)
-        return
-      }
-
-      // For non-temporary animations or idle, loop back to start
-      console.log(`🎭 Looping back to start`)
-      currentSequenceTimeout = setTimeout(() => {
-        // Reset transition flag before looping
-        isTransitioning = false
-        playKeyframeSequence(keyframes, 0, sequenceName)
-      }, 200)
-      return
-    }
-
-    const keyframe = keyframes[index]
-    const keyframeName = extractKeyframeName(keyframe.vrma)
-
-    console.log(`🎭 Playing keyframe ${index + 1}/${keyframes.length}: ${keyframeName}`)
-    console.log(`🎭 Duration: ${keyframe.duration}s, Crossfade: ${keyframe.crossfade}s`)
-
-    const clip = loadedAnimations.get(keyframeName)
-    if (!clip) {
-      console.warn(`🎭 Keyframe clip not available: ${keyframeName}`)
-      // Skip to next keyframe
-      currentSequenceTimeout = setTimeout(() => {
-        playKeyframeSequence(keyframes, index + 1, sequenceName)
-      }, keyframe.duration * 1000)
-      return
-    }
-
-    const newAction = mixer.clipAction(clip)
-
-    // Configure the animation
-    newAction.setLoop(THREE.LoopRepeat, Infinity)
-    newAction.clampWhenFinished = false
-
-    // Reset and setup the new action
+    // Setup and play
     newAction.reset()
     newAction.setEffectiveWeight(1.0)
     newAction.setEffectiveTimeScale(1.0)
 
     // Crossfade from current action
-    if (currentAction && currentAction !== newAction && !isTransitioning) {
-      isTransitioning = true
-
-      // Start the new action first
+    if (currentAction && currentAction !== newAction) {
       newAction.play()
-
-      // Then crossfade from current to new
-      currentAction.crossFadeTo(newAction, keyframe.crossfade, false)
-
-      setTimeout(() => {
-        isTransitioning = false
-      }, keyframe.crossfade * 1000)
+      currentAction.crossFadeTo(newAction, crossfadeDuration, false)
     } else {
-      // No transition needed, just play
       newAction.play()
     }
 
     currentAction = newAction
-
-    console.log(`🎭 ✅ Keyframe playing: ${keyframeName}`)
-
-    // Schedule next keyframe (subtract crossfade time to start transition before keyframe ends)
-    const nextKeyframeDelay = Math.max(100, (keyframe.duration - keyframe.crossfade) * 1000)
-    currentSequenceTimeout = setTimeout(() => {
-      playKeyframeSequence(keyframes, index + 1, sequenceName)
-    }, nextKeyframeDelay)
+    currentAnimation.value = animationName
+    console.log(`✅ Playing ${isIdle ? 'idle' : 'specific'}: ${animationName}`)
   }
+
+  /**
+   * Main animation function - now uses clean system
+   */
+  const playAnimation = async (animationName: string, crossfadeDuration: number = 0.8): Promise<void> => {
+    console.log(`🎭 Playing animation: ${animationName}`)
+    
+    // Determine if this is an idle or specific animation
+    const isIdle = availableIdles.includes(animationName)
+    
+    // Use the clean system
+    await playAnimationClean(animationName, isIdle, crossfadeDuration)
+  }
+
 
   /**
    * Play expressions sequence
@@ -847,8 +907,8 @@ export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, confi
         // EXPRESSIONS TEMPORARILY DISABLED FOR TESTING
         // updateExpressions()
 
-        // Update breathing
-        updateBreathing()
+        // Update breathing - COMMENTED OUT FOR NOW
+        // updateBreathing()
       }
 
       if (renderer && scene && camera) {
@@ -895,6 +955,9 @@ export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, confi
    * Cleanup resources
    */
   const cleanup = (): void => {
+    // Stop idle system
+    stopIdleSystem()
+    
     // Stop render loop
     if (animationId) {
       cancelAnimationFrame(animationId)

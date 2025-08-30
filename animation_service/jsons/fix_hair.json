@@ -1,0 +1,8 @@
+{
+  "sequence": "fix_hair",
+  "description": "Gesto de arreglarse el cabello, perfecto para mostrar nerviosismo o vanidad",
+  "vrma_file": "animations/fix_hair.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

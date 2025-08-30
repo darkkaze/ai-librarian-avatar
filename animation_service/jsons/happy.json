@@ -1,0 +1,8 @@
+{
+  "sequence": "happy",
+  "description": "Expresión de felicidad y alegría, ideal para momentos positivos y celebratorios",
+  "vrma_file": "animations/happy.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

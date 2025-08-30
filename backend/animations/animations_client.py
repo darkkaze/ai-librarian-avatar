@@ -6,11 +6,11 @@ class AnimationsClient:
         self.service_url = service_url
         self.openai_client = openai.AsyncOpenAI(api_key=openai_api_key) if openai_api_key else None
     
-    async def generate_animations(self, agent_response: str, conversation_history: list = None) -> dict:
+    async def generate_animations(self, agent_response: str) -> dict:
         """Genera animaciones usando GPT para selección y servicio HTTP para obtener datos"""
         try:
             # Usar métodos privados según buenas prácticas
-            selected_animation = await self._select_animation(agent_response, conversation_history)
+            selected_animation = await self._select_animation(agent_response)
             animation_data = await self._retrieve_animation_from_server(selected_animation)
             
             return animation_data
@@ -18,7 +18,7 @@ class AnimationsClient:
             # Fallback a idle si hay error
             return await self._retrieve_animation_from_server("idle")
     
-    async def _select_animation(self, agent_response: str, conversation_history: list = None) -> str:
+    async def _select_animation(self, agent_response: str) -> str:
         """Usa GPT-4o-mini para seleccionar la animación más apropiada"""
         if not self.openai_client:
             print("❌ OpenAI API key not configured, defaulting to 'idle' animation")
@@ -40,23 +40,10 @@ class AnimationsClient:
                 for seq in sequences
             ])
             
-            # Incluir historial de conversación si está disponible
-            context = ""
-            if conversation_history:
-                recent_messages = conversation_history[-3:]  # Últimos 3 mensajes
-                context = "Contexto de conversación reciente:\n"
-                for msg in recent_messages:
-                    role = "Usuario" if msg.get("role") == "user" else "Hana"
-                    context += f"- {role}: {msg.get('text', '')}\n"
-                context += "\n"
-            
             prompt = (
-                f"Dado la siguiente respuesta de nuestro Agente y el contexto de conversación, "
+                f"Dada la siguiente respuesta del agente, "
                 f"selecciona la animación más apropiada.\n\n"
-
-                f"Conversación:\n"
-                f"{context}\n"
-                f"Respuesta actual del agente: \"{agent_response}\"\n\n"
+                f"Respuesta del agente: \"{agent_response}\"\n\n"
                 f"Animaciones disponibles:\n{sequences_text}\n\n"
                 f"Mandatorio: Responde únicamente con el nombre de la animación (ejemplo: \"hello\", \"idle\", \"v\", etc.). "
                 "Mandatorio: responder solo con el nombre exacto de la animación.\n"
@@ -99,7 +86,7 @@ class AnimationsClient:
                                 # Último fallback hardcodeado
                                 return {
                                     "sequence": "idle",
-                                    "keyframes": [{"vrma": "http://localhost:5003/poses/standing_key_00.vrma", "duration": 2.0, "crossfade": 0.25}],
+                                    "keyframes": [{"vrma": "http://localhost:5003/animations/waiting-animation.vrma", "duration": 2.0, "crossfade": 0.25}],
                                     "breathing": True,
                                     "delay": 0.0
                                 }
@@ -107,7 +94,7 @@ class AnimationsClient:
             print(f"Error en _retrieve_animation_from_server: {e}")
             return {
                 "sequence": "idle",
-                "keyframes": [{"vrma": "http://localhost:5003/poses/standing_key_00.vrma", "duration": 2.0, "crossfade": 0.25}],
+                "keyframes": [{"vrma": "http://localhost:5003/animations/waiting-animation.vrma", "duration": 2.0, "crossfade": 0.25}],
                 "breathing": True,
                 "delay": 0.0
             }

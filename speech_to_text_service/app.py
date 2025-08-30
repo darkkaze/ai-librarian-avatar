@@ -1,75 +1,39 @@
 #!/usr/bin/env python3
 """
-Servicio de Text-to-Speech usando XTTS-v2 con Flask
+Servicio de Text-to-Speech refactorizado
+Soporta XTTS-v2 y Piper TTS con configuración claude_slow_11
 """
 
 import os
-import torch
-import tempfile
-from datetime import datetime
-from pathlib import Path
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 
-# Fix PyTorch compatibility 
-original_load = torch.load
-def patched_load(*args, **kwargs):
-    kwargs['weights_only'] = False
-    return original_load(*args, **kwargs)
-torch.load = patched_load
-
-from TTS.api import TTS
+# Importar motores TTS
+from model_piper.piper_engine import PiperEngine
+from model_tts.xtts_engine import XTTSEngine
 
 app = Flask(__name__)
 CORS(app)
 
-# XTTS no soporta MPS nativamente, solo CUDA
-# Usar CPU optimizado para M4 (que en realidad es bastante rápido)
-device = "cpu"
-use_gpu = False
-
-class TTSGenerator:
-    """Generador TTS inicializado una sola vez para evitar cold starts"""
-    
-    def __init__(self):
-        print("📱 Inicializando XTTS-v2 en CPU (evitando cold start)...")
-        self.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
-        self.speaker_wav = "voice_cloning/samples/demo_nino.mp3"  # El sample más grande
-        self._temp_dir = tempfile.mkdtemp()
-        print("✅ XTTS-v2 inicializado y listo")
-        
-        # Verificar que el sample de voz existe
-        if not os.path.exists(self.speaker_wav):
-            raise FileNotFoundError(f"Sample de voz no encontrado: {self.speaker_wav}")
-    
-    def generate_speech(self, text, entonacion="neutral"):
-        """Genera audio TTS y retorna el path del archivo generado"""
-        try:
-            # Crear nombre único basado en timestamp
-            timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-            output_file = os.path.join(self._temp_dir, f"tts_{timestamp}.wav")
-            
-            # Generar speech con XTTS
-            self.tts.tts_to_file(
-                text=text,
-                file_path=output_file,
-                speaker_wav=self.speaker_wav,
-                language="es"  # Spanish
-            )
-            
-            return output_file
-            
-        except Exception as e:
-            raise Exception(f"Error generando TTS: {e}")
-
-# Inicializar generador una sola vez (evita cold starts)
-print("🔧 Usando CPU optimizado para Apple Silicon")
-tts_generator = TTSGenerator()
+# Inicializar motor TTS con Piper por defecto (hardcodeado como solicitado)
+print("🔧 Inicializando servicio TTS con Piper (claude_slow_11)...")
+try:
+    tts_engine = PiperEngine()
+    print("✅ Servicio TTS inicializado con Piper")
+except Exception as e:
+    print(f"⚠️ Error inicializando Piper, fallback a XTTS: {e}")
+    tts_engine = XTTSEngine()
+    print("✅ Servicio TTS inicializado con XTTS (fallback)")
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Endpoint de health check"""
-    return jsonify({"status": "healthy", "service": "speech_to_text_service"})
+    engine_name = type(tts_engine).__name__.replace('Engine', '').lower()
+    return jsonify({
+        "status": "healthy", 
+        "service": "speech_to_text_service",
+        "engine": engine_name
+    })
 
 @app.route('/generate', methods=['POST'])
 def generate_speech():
@@ -84,7 +48,8 @@ def generate_speech():
     
     Response:
     {
-        "audio_url": "/voice/tts_abc123.wav"
+        "audio_url": "/voice/filename.wav",
+        "engine": "piper|xtts"
     }
     """
     try:
@@ -94,25 +59,29 @@ def generate_speech():
             return jsonify({"error": "JSON requerido"}), 400
         
         text = data.get('text')
-        entonacion = data.get('entonacion', 'neutral')
         
         if not text:
             return jsonify({"error": "text requerido"}), 400
         
-        # Generar audio usando el generador inicializado
-        audio_file = tts_generator.generate_speech(text, entonacion)
+        print(f"🎤 Generando TTS: '{text}' con {type(tts_engine).__name__}")
+        
+        # Generar audio usando el motor configurado
+        audio_file = tts_engine.generate_speech(text)
         
         # Crear URL para el archivo generado
         filename = os.path.basename(audio_file)
-        # Obtener la URL base del servidor desde la request
         server_url = request.host_url.rstrip('/')
         audio_url = f"{server_url}/voice/{filename}"
         
-        return jsonify({"audio_url": audio_url})
+        engine_name = type(tts_engine).__name__.replace('Engine', '').lower()
+        
+        return jsonify({
+            "audio_url": audio_url,
+            "engine": engine_name
+        })
         
     except Exception as e:
         print(f"❌ Error in generate_speech endpoint: {e}")
-        print(f"❌ Error type: {type(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -121,7 +90,7 @@ def generate_speech():
 def serve_audio(filename):
     """Sirve archivos de audio generados"""
     try:
-        file_path = os.path.join(tts_generator._temp_dir, filename)
+        file_path = os.path.join(tts_engine._temp_dir, filename)
         
         if not os.path.exists(file_path):
             return jsonify({"error": "Archivo no encontrado"}), 404
@@ -132,5 +101,8 @@ def serve_audio(filename):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    print("🎤 Iniciando servicio de TTS en puerto 5002...")
-    app.run(host='0.0.0.0', port=5002, debug=True)
+    print("🎤 Iniciando servicio de TTS refactorizado en puerto 5002...")
+    try:
+        app.run(host='0.0.0.0', port=5002, debug=True)
+    finally:
+        tts_engine.cleanup()

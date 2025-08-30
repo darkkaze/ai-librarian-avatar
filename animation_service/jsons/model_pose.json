@@ -1,0 +1,8 @@
+{
+  "sequence": "model_pose",
+  "description": "Pose elegante como de modelo, mostrando confianza y estilo",
+  "vrma_file": "animations/model_pose.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

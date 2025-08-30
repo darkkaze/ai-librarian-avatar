@@ -1,0 +1,8 @@
+{
+  "sequence": "idle2",
+  "description": "Animación idle alternativa con movimientos sutiles de espera",
+  "vrma_file": "animations/idle2.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

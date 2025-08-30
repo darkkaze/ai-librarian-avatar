@@ -226,7 +226,7 @@ const websocket = useWebSocket({
 })
 
 const voiceCapture = useVoiceCapture({
-  voiceTimeout: 3000
+  voiceTimeout: 1500
 })
 
 const avatarRenderer = useAvatarRenderer(avatarContainer, {
@@ -426,6 +426,12 @@ const setupEventHandlers = (): void => {
     console.log('🚀 Fast output has visemas?', !!response.visemas)
     console.log('🚀 Fast output full object:', JSON.stringify(response, null, 2))
 
+    // PAUSE voice capture when avatar starts speaking to prevent feedback
+    if (response.audio_url && isListening.value) {
+      console.log('🎙️ Pausing voice capture - avatar is about to speak')
+      voiceCapture.stop()
+    }
+
     if (response.audio_url && response.visemas) {
       console.log('🎵 Attempting to play audio:', response.audio_url)
       audioPlayback.playAudio(response.audio_url, response.visemas)
@@ -451,6 +457,12 @@ const setupEventHandlers = (): void => {
   responseCoordinator.onCompleteResponse((response) => {
     console.log('🎯 Playing complete response for:', response.messageId, response)
 
+    // PAUSE voice capture when avatar starts speaking to prevent feedback
+    if (response.audio?.audio_url && isListening.value) {
+      console.log('🎙️ Pausing voice capture - avatar is about to speak (complete response)')
+      voiceCapture.stop()
+    }
+
     // Play audio with visemas
     if (response.audio?.audio_url && response.audio?.visemas) {
       audioPlayback.playAudio(response.audio.audio_url, response.audio.visemas)
@@ -463,22 +475,39 @@ const setupEventHandlers = (): void => {
       avatarRenderer.playExpressions(response.expressions.expresiones)
     }
 
-    // Play animations - TEMPORARILY COMMENTED FOR TESTING
-    // if (response.animations) {
-    //   avatarRenderer.playAnimation(response.animations.sequence, 0.8)
+    // Play animations
+    if (response.animations) {
+      avatarRenderer.playAnimation(response.animations.sequence, 0.8)
 
-    //   // Update breathing config based on animation
-    //   avatarRenderer.setBreathingConfig({
-    //     enabled: response.animations.breathing
-    //   })
-    // }
-    console.log('🎭 Animations disabled for testing, only visemas and expressions will play')
+      // Update breathing config based on animation
+      avatarRenderer.setBreathingConfig({
+        enabled: response.animations.breathing
+      })
+    }
   })
 
   // Audio visema handler
   audioPlayback.onVisema((visema) => {
     // TODO: Apply visema to avatar lip sync
     console.log(`👄 Visema: ${visema}`)
+  })
+
+  // Audio playback state handler - for managing voice capture
+  audioPlayback.onPlaybackChange((isPlaying) => {
+    console.log(`🎵 Audio playback state changed: ${isPlaying ? 'playing' : 'stopped'}`)
+    
+    // If audio just stopped and we're in a good state to listen, auto-resume
+    if (!isPlaying && canUseVoice.value && !isListening.value) {
+      console.log('🎙️ Auto-resuming voice capture - avatar finished speaking')
+      // Small delay to ensure audio is fully stopped
+      setTimeout(() => {
+        if (!audioState.value.isPlaying) { // Double check
+          voiceCapture.start().catch(error => {
+            console.warn('Failed to auto-resume voice capture:', error)
+          })
+        }
+      }, 500)
+    }
   })
 }
 

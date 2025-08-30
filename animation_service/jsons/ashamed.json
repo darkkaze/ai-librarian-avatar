@@ -1,0 +1,8 @@
+{
+  "sequence": "ashamed",
+  "description": "Animación de vergüenza o timidez, mostrando gestos de incomodidad o sonrojo",
+  "vrma_file": "animations/ashamed.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

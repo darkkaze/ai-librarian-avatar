@@ -1,0 +1,8 @@
+{
+  "sequence": "greeting",
+  "description": "dont use this animation, deprecated",
+  "vrma_file": "animations/greeting.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

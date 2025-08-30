@@ -1,0 +1,8 @@
+{
+  "sequence": "v_hello",
+  "description": "Saludo con signo de victoria o paz, combinando saludo y gesto positivo",
+  "vrma_file": "animations/v_hello.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

@@ -1,0 +1,8 @@
+{
+  "sequence": "spin",
+  "description": "Giro elegante o juguetón, mostrando movimiento circular completo",
+  "vrma_file": "animations/spin.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

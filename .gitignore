@@ -162,8 +162,6 @@ coverage/
 animation_service/models/
 animation_service/poses/
 
-# Exclude voice cloning samples
-speech_to_text_service/voice_cloning/samples/
 
 # Video files
 *.mp4
@@ -351,8 +349,9 @@ animation_service/*.vrma.cache
 visemas_service/cache/
 visemas_service/temp/
 
-# Speech to Text Service  
-speech_to_text_service/models/
+# Speech to Text Service - Nueva estructura organizada con voices
+speech_to_text_service/model_piper/voices/
+speech_to_text_service/model_tts/voices/
 speech_to_text_service/cache/
 
 # Backend

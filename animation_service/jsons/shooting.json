@@ -1,0 +1,8 @@
+{
+  "sequence": "shooting",
+  "description": "Gesto como de disparar con los dedos, juguetón y divertido",
+  "vrma_file": "animations/shooting.vrma",
+  "breathing": true,
+  "delay": 0.0,
+  "temporary": false
+}

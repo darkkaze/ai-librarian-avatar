@@ -15,7 +15,7 @@ CORS(app)
 
 # Directorio base del servicio
 BASE_DIR = Path(__file__).parent
-POSES_DIR = BASE_DIR / "poses"
+ANIMATIONS_DIR = BASE_DIR / "animations"
 JSONS_DIR = BASE_DIR / "jsons"
 MODELS_DIR = BASE_DIR / "models"
 
@@ -42,21 +42,10 @@ class AnimationService:
                     sequence_name = sequence_data.get("sequence")
                     
                     if sequence_name:
-                        # Manejar formato de keyframes múltiples
-                        if "keyframes" in sequence_data:
-                            for keyframe in sequence_data.get("keyframes", []):
-                                if "vrma" in keyframe:
-                                    vrma_path = keyframe["vrma"]
-                                    # Convertir "poses/file.vrma" a "http://localhost:5003/poses/file.vrma"
-                                    if vrma_path.startswith("poses/"):
-                                        keyframe["vrma"] = f"{self.service_url}/{vrma_path}"
-                        
-                        # Manejar formato de un solo archivo VRMA
-                        elif "vrma_file" in sequence_data:
-                            vrma_path = sequence_data["vrma_file"]
-                            # Convertir "poses/file.vrma" a "http://localhost:5003/poses/file.vrma"
-                            if vrma_path.startswith("poses/"):
-                                sequence_data["vrma_file"] = f"{self.service_url}/{vrma_path}"
+                        # Convertir ruta relativa a URL completa
+                        vrma_path = sequence_data.get("vrma_file", "")
+                        if vrma_path.startswith("animations/"):
+                            sequence_data["vrma_file"] = f"{self.service_url}/{vrma_path}"
                         
                         self.sequences_map[sequence_name] = sequence_data
                         print(f"✅ Cargada secuencia: {sequence_name}")
@@ -87,15 +76,16 @@ def get_sequence(sequence_name):
     """
     Endpoint para obtener una secuencia de animación
     
-    URL: GET /sequence/standing
+    URL: GET /sequence/idle
     
     Response:
     {
-        "sequence": "standing",
-        "keyframes": [...],
-        "crossfade": 0.3,
+        "sequence": "idle",
+        "description": "Animación idle simple con un solo archivo VRMA en loop continuo",
+        "vrma_file": "http://localhost:5003/animations/waiting-animation.vrma",
         "breathing": true,
-        "delay": 0.0
+        "delay": 0.0,
+        "temporary": false
     }
     """
     try:
@@ -112,11 +102,11 @@ def get_sequence(sequence_name):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/poses/<filename>', methods=['GET'])
-def serve_pose(filename):
-    """Sirve archivos .vrma desde el directorio poses/"""
+@app.route('/animations/<filename>', methods=['GET'])
+def serve_animation(filename):
+    """Sirve archivos .vrma desde el directorio animations/"""
     try:
-        file_path = POSES_DIR / filename
+        file_path = ANIMATIONS_DIR / filename
         
         if not file_path.exists():
             return jsonify({"error": "Archivo no encontrado"}), 404
