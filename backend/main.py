@@ -1,26 +1,27 @@
 import websockets
 import asyncio
 import json
+import os
 
 import settings
-from agents.agent import Agent
-from db.models import DatabaseManager
+from agents.ducktyping import AgentProtocol
+from agents.agent import LibreraAgent
+from db.ducktyping import DatabaseManagerProtocol
+from db.models import DatabaseManager, init_db
 from vox.xtts_client import XTTSClient
 from visemas.librosa_client import LibrosaClient
 from animations.expressions_client import ExpressionsClient
 from animations.animations_client import AnimationsClient
-from langchain_community.tools import TavilySearchResults  # Herramienta de búsqueda web
-import os
-import re
+from langchain_anthropic import ChatAnthropic
 
 class WebSocketHandler:
-    def __init__(self, agent: Agent, db_manager: DatabaseManager, websocket):
+    def __init__(self, agent: AgentProtocol, db_manager: DatabaseManagerProtocol, websocket):
         """
         Inicializa el manejador de WebSocket.
-        
+
         Args:
-            agent: Instancia del agente LangChain
-            db_manager: Manager de la base de datos
+            agent: Instancia del agente (implementa AgentProtocol)
+            db_manager: Manager de la base de datos (implementa DatabaseManagerProtocol)
             websocket: Conexión WebSocket del cliente
         """
         self.agent = agent
@@ -29,7 +30,7 @@ class WebSocketHandler:
         self.tts_model = XTTSClient()
         self.visemas_model = LibrosaClient()
         self.expressions_model = ExpressionsClient()
-        self.animations_model = AnimationsClient(openai_api_key=os.getenv("OPENAI_API_KEY"))
+        self.animations_model = AnimationsClient(openai_api_key=settings.OPENAI_API_KEY)
     
     async def handler(self):
         """Handler principal que rutea mensajes según su tipo"""
@@ -66,18 +67,13 @@ class WebSocketHandler:
     
     async def main(self, message: str, message_id: str):
         """Función principal que maneja el flujo de procesamiento"""
-        agent_response = await self.agent.process_message(message, [])  # El agente maneja su propia memoria
-        agent_response = agent_response[0]['text'] if isinstance(agent_response, list) else agent_response
+        agent_response = await self.agent.process_message(message)
         print(f"Respuesta del agente: {agent_response}")
-        # remove all text inside []
-        agent_response = re.sub(r'\[.*?\]', '', agent_response).strip()
-        # remove Sonrío con *:
-        agent_response = re.sub(r'Sonr[ií]o(?: con)? \w+:?', '', agent_response).strip()
-        # remove y? le? respondo con *
-        agent_response = re.sub(r'(?:y\s*)?(?:le\s*)?respondo(?: con)? \w+:?', '', agent_response, flags=re.IGNORECASE).strip()
+
+        # Procesamiento paralelo: TTS+Visemas, Expresiones, Animaciones
         await asyncio.gather(
             self._parallel1(message, agent_response, message_id),
-            self._parallel2(agent_response, message_id), 
+            self._parallel2(agent_response, message_id),
             self._parallel3(agent_response, message_id)
         )
     
@@ -107,37 +103,31 @@ class WebSocketHandler:
 
 async def start_server():
     """Inicializa el servidor WebSocket"""
-    # Inicializar dependencias
-    db_manager = DatabaseManager()
-    
+
+    # Initialize database
+    print("Inicializando base de datos...")
+    init_db()
+    print("Base de datos inicializada.")
+
     async def handler_factory(websocket):
         """Factory para crear instancias de WebSocketHandler por cliente"""
-        # Crear modelos para fast output
-        from vox.xtts_client import XTTSClient
-        from visemas.librosa_client import LibrosaClient
-        tts_model = XTTSClient()
-        visemas_model = LibrosaClient()
-        
-        tools = []
-        
-        # Agregar herramienta de búsqueda si hay API key
-        if os.getenv("TAVILY_API_KEY"):
-            search_tool = TavilySearchResults(max_results=3)  # Herramienta de búsqueda web
-            tools.append(search_tool)
-            print("✅ Herramienta de búsqueda Tavily agregada")
-        else:
-            print("⚠️ TAVILY_API_KEY no encontrada. Búsqueda web deshabilitada.")
-        
-        # Crear agente con las herramientas disponibles
-        agent = Agent(tools=tools)
-        
+        # Create LibreraAgent with Claude Haiku 4.5
+        model = ChatAnthropic(
+            model="claude-haiku-4-5",
+            api_key=settings.ANTHROPIC_API_KEY
+        )
+        agent = LibreraAgent(model)
+
+        # Create DatabaseManager
+        db_manager = DatabaseManager()
+
         websocket_handler = WebSocketHandler(agent, db_manager, websocket)
         await websocket_handler.handler()
-    
+
     print(f"Iniciando servidor WebSocket en {settings.WEBSOCKET_HOST}:{settings.WEBSOCKET_PORT}")
     server = await websockets.serve(
-        handler_factory, 
-        settings.WEBSOCKET_HOST, 
+        handler_factory,
+        settings.WEBSOCKET_HOST,
         settings.WEBSOCKET_PORT
     )
     print("Servidor iniciado. Esperando conexiones...")

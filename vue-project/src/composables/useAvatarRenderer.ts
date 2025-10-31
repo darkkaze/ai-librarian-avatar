@@ -697,7 +697,7 @@ export function useAvatarRenderer(container: Ref<HTMLElement | undefined>, confi
       const visemaName = visemaData.visema
       if (vrm.expressionManager.expressionMap[visemaName]) {
         // Smooth transition like AvatarDemo.vue
-        await smoothTransition(visemaName, 1.0, 150) // Fade in quickly
+        await smoothTransition(visemaName, 0.75, 150) // Fade in quickly
 
         // Auto fade out after brief hold
         setTimeout(async () => {

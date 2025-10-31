@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Servicio de Text-to-Speech refactorizado
-Soporta XTTS-v2 y Piper TTS con configuración claude_slow_11
+Soporta Gemini TTS, Piper TTS y XTTS-v2
 """
 
 import os
@@ -9,21 +9,27 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 
 # Importar motores TTS
+from model_gemini.gemini_engine import GeminiEngine
 from model_piper.piper_engine import PiperEngine
 from model_tts.xtts_engine import XTTSEngine
 
 app = Flask(__name__)
 CORS(app)
 
-# Inicializar motor TTS con Piper por defecto (hardcodeado como solicitado)
-print("🔧 Inicializando servicio TTS con Piper (claude_slow_11)...")
+# Inicializar motor TTS con Gemini por defecto
+print("🔧 Inicializando servicio TTS con Gemini TTS...")
 try:
-    tts_engine = PiperEngine()
-    print("✅ Servicio TTS inicializado con Piper")
+    tts_engine = GeminiEngine()
+    print("✅ Servicio TTS inicializado con Gemini")
 except Exception as e:
-    print(f"⚠️ Error inicializando Piper, fallback a XTTS: {e}")
-    tts_engine = XTTSEngine()
-    print("✅ Servicio TTS inicializado con XTTS (fallback)")
+    print(f"⚠️ Error inicializando Gemini, fallback a Piper: {e}")
+    try:
+        tts_engine = PiperEngine()
+        print("✅ Servicio TTS inicializado con Piper (fallback)")
+    except Exception as e2:
+        print(f"⚠️ Error inicializando Piper, fallback a XTTS: {e2}")
+        tts_engine = XTTSEngine()
+        print("✅ Servicio TTS inicializado con XTTS (fallback final)")
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -49,7 +55,7 @@ def generate_speech():
     Response:
     {
         "audio_url": "/voice/filename.wav",
-        "engine": "piper|xtts"
+        "engine": "gemini|piper|xtts"
     }
     """
     try:

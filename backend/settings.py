@@ -4,6 +4,7 @@ WEBSOCKET_HOST = "localhost"
 WEBSOCKET_PORT = 8765
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 PHONEME_TO_VISEME = {
     # Vocales principales
