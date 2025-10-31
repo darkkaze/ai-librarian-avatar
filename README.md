@@ -13,7 +13,9 @@ This project connects a ReAct-based AI agent (powered by Claude Haiku 4.5) with 
 
 ## Demo
 
-Video demonstration available at: `/Users/kaze/Library/CloudStorage/GoogleDrive-dark.kase@gmail.com/Mi unidad/waifu_librera_final.mp4`
+🎥 **[Watch Video Demo](https://youtube.com/shorts/4K3GIW9ZUZc?feature=share)**
+
+[![AI Librarian Avatar Demo](https://img.youtube.com/vi/4K3GIW9ZUZc/maxresdefault.jpg)](https://youtube.com/shorts/4K3GIW9ZUZc?feature=share)
 
 ## Key Features
 
